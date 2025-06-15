@@ -7,6 +7,9 @@ node_modules/
 .cdk.staging
 cdk.out
 
+# CDK context (contient des infos spécifiques à l'environnement)
+cdk.context.json
+
 # Compiled output
 /dist
 /tmp
