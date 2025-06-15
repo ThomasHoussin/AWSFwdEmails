@@ -1,6 +1,8 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { EmailForwardingRuleSet } from '@seeebiii/ses-email-forwarding';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as path from 'path';
 
 interface EmailForwarderStackProps extends cdk.StackProps {
   config: any;
@@ -16,7 +18,8 @@ export class EmailForwarderStack extends cdk.Stack {
     this.validateConfig(config);
 
     // Création du système de transfert d'emails avec SES
-    new EmailForwardingRuleSet(this, 'EmailForwardingRuleSet', {
+    // On utilise une approche personnalisée pour forcer Node.js 22
+    const emailForwardingRuleSet = new EmailForwardingRuleSet(this, 'EmailForwardingRuleSet', {
       // Active automatiquement le rule set (un seul peut être actif)
       enableRuleSet: true,
 
@@ -39,6 +42,9 @@ export class EmailForwarderStack extends cdk.Stack {
       }]
     });
 
+    // Patch pour forcer Node.js 22.x sur la fonction lambda de transfert d'emails
+    this.patchLambdaRuntime(emailForwardingRuleSet);
+
     // Outputs utiles
     new cdk.CfnOutput(this, 'DomainName', {
       value: config.domainName,
@@ -49,6 +55,39 @@ export class EmailForwarderStack extends cdk.Stack {
       value: JSON.stringify(config.emailMappings, null, 2),
       description: 'Mappings d\'emails configurés'
     });
+  }
+
+  private patchLambdaRuntime(emailForwardingRuleSet: EmailForwardingRuleSet): void {
+    // On parcourt tous les enfants du construct pour trouver les lambdas
+    const findLambdas = (construct: Construct): lambda.Function[] => {
+      const lambdas: lambda.Function[] = [];
+
+      for (const child of construct.node.children) {
+        if (child instanceof lambda.Function) {
+          lambdas.push(child);
+        }
+        // Récursion sur les enfants
+        lambdas.push(...findLambdas(child));
+      }
+
+      return lambdas;
+    };
+
+    const lambdaFunctions = findLambdas(emailForwardingRuleSet);
+
+    for (const lambdaFunction of lambdaFunctions) {
+      // On identifie la lambda de transfert d'emails par son nom ou ses propriétés
+      const resourceName = lambdaFunction.node.id;
+
+      // Si c'est la lambda de transfert d'emails (elle contient généralement "EmailForwarding" dans le nom)
+      if (resourceName.includes('EmailForwarding')) {
+        // On force le runtime à Node.js 22.x en accédant à la ressource CloudFormation sous-jacente
+        const cfnFunction = lambdaFunction.node.defaultChild as lambda.CfnFunction;
+        cfnFunction.runtime = lambda.Runtime.NODEJS_22_X.name;
+
+        console.log(`✅ Runtime mis à jour vers Node.js 22.x pour la lambda: ${resourceName}`);
+      }
+    }
   }
 
   private validateConfig(config: any): void {
