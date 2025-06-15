@@ -1,0 +1,22 @@
+{
+  "account": "123456789012",
+  "region": "eu-west-1",
+  "domainName": "votre-domaine.fr",
+  "fromPrefix": "noreply",
+  "emailMappings": [
+    {
+      "receivePrefix": "contact",
+      "targetEmails": ["votre-email@gmail.com"]
+    },
+    {
+      "receivePrefix": "info",
+      "targetEmails": ["votre-email@gmail.com"]
+    },
+    {
+      "receivePrefix": "support",
+      "targetEmails": ["votre-email@gmail.com"]
+    }
+  ],
+  "verifyDomain": true,
+  "verifyTargetEmailAddresses": false
+}
