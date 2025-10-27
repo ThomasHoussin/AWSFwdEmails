@@ -24,7 +24,7 @@ new EmailForwarderStack(app, 'EmailForwarderStack', {
     account: config.account,
     region: config.region,
   },
-  description: `Stack de transfert d'emails pour ${config.domainName}`,
+  description: `Stack de transfert d'emails pour ${config.domains.map((d: any) => d.domainName).join(', ')}`,
   config // Passer la config directement
 });
 

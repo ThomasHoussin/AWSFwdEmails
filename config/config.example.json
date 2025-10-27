@@ -1,22 +1,42 @@
 {
   "account": "123456789012",
   "region": "eu-west-1",
-  "domainName": "votre-domaine.fr",
-  "fromPrefix": "noreply",
-  "emailMappings": [
+  "domains": [
     {
-      "receivePrefix": "contact",
-      "targetEmails": ["votre-email@gmail.com"]
+      "domainName": "premier-domaine.fr",
+      "fromPrefix": "noreply",
+      "verifyDomain": true,
+      "verifyTargetEmailAddresses": false,
+      "emailMappings": [
+        {
+          "receivePrefix": "contact",
+          "targetEmails": ["votre-email@gmail.com"]
+        },
+        {
+          "receivePrefix": "info",
+          "targetEmails": ["votre-email@gmail.com"]
+        },
+        {
+          "receivePrefix": "support",
+          "targetEmails": ["votre-email@gmail.com"]
+        }
+      ]
     },
     {
-      "receivePrefix": "info",
-      "targetEmails": ["votre-email@gmail.com"]
-    },
-    {
-      "receivePrefix": "support",
-      "targetEmails": ["votre-email@gmail.com"]
+      "domainName": "second-domaine.com",
+      "fromPrefix": "noreply",
+      "verifyDomain": true,
+      "verifyTargetEmailAddresses": false,
+      "emailMappings": [
+        {
+          "receivePrefix": "hello",
+          "targetEmails": ["autre-email@gmail.com"]
+        },
+        {
+          "receivePrefix": "admin",
+          "targetEmails": ["admin@example.com"]
+        }
+      ]
     }
-  ],
-  "verifyDomain": true,
-  "verifyTargetEmailAddresses": false
+  ]
 }
