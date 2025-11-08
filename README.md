@@ -1,98 +1,138 @@
 # 📧 AWS Email Forwarder CDK
 
-Implémentation CDK simple du tutoriel AWS pour le transfert d'emails avec SES.
-Basé sur le package mature `@seeebiii/ses-email-forwarding`.
+Simple CDK implementation of the AWS tutorial for email forwarding with SES.
+Built on top of the mature `@seeebiii/ses-email-forwarding` package.
 
-## ✨ Fonctionnalités
+## ✨ Features
 
-- ✅ **Transfert d'emails automatique** via AWS SES
-- ✅ **Configuration simple** via fichier JSON
-- ✅ **Vérification automatique** du domaine (Route53)
-- ✅ **Multiple mappings** d'emails
-- ✅ **Sécurisé** - pas de secrets dans le code
-- ✅ **Déploiement en une commande**
+- ✅ **Automatic email forwarding** via AWS SES
+- ✅ **Multi-domain support** - Forward emails from multiple domains
+- ✅ **Simple configuration** via JSON file
+- ✅ **Automatic domain verification** (Route53)
+- ✅ **Multiple email mappings** per domain
+- ✅ **Node.js 22.x runtime** - Automatically enforced on Lambda functions
+- ✅ **S3 lifecycle management** - Intelligent Tiering and automatic cleanup
+- ✅ **Secure** - No secrets in code
+- ✅ **One-command deployment**
 
 ## 🏗️ Architecture
 
-Cette solution reproduit exactement l'architecture du [tutoriel AWS](https://aws.amazon.com/fr/blogs/messaging-and-targeting/forward-incoming-email-to-an-external-destination/) :
+This solution replicates the architecture from the [AWS tutorial](https://aws.amazon.com/blogs/messaging-and-targeting/forward-incoming-email-to-an-external-destination/):
 
-1. **SES** reçoit l'email sur votre domaine
-2. **S3** stocke temporairement l'email
-3. **Lambda** traite et transfère l'email
-4. **SES** envoie l'email vers la destination finale
+1. **SES** receives the email on your domain(s)
+2. **S3** temporarily stores the email with optimized storage classes
+3. **Lambda** (Node.js 22.x) processes and forwards the email
+4. **SES** sends the email to the final destination
 
-## 🚀 Installation rapide
+### S3 Lifecycle Management
 
-### 1. Cloner et installer
+The solution automatically configures S3 lifecycle policies:
+- **Day 0**: Transition to Intelligent Tiering for cost optimization
+- **Day 90**: Automatic deletion of emails
+- **Day 1**: Cleanup of incomplete multipart uploads
+
+## 🚀 Quick Start
+
+### 1. Clone and Install
 
 ```bash
-# Cloner le projet
-git clone <votre-repo>
+# Clone the repository
+git clone <your-repo>
 cd aws-email-forwarder-cdk
 
-# Installer les dépendances
+# Install dependencies
 yarn install
 ```
 
 ### 2. Configuration
 
 ```bash
-# Copier l'exemple de configuration
+# Copy the example configuration
 cp config/config.example.json config/config.json
 
-# Éditer la configuration
+# Edit the configuration
 nano config/config.json
 ```
 
-### 3. Configurer vos paramètres
+### 3. Configure Your Parameters
 
-Modifiez `config/config.json` avec vos informations :
+Edit `config/config.json` with your information:
 
 ```json
 {
-  "account": "123456789012",           // Votre AWS Account ID
-  "region": "eu-west-1",               // Région AWS
-  "domainName": "mondomaine.fr",       // Votre domaine
-  "fromPrefix": "noreply",             // Préfixe expéditeur
-  "emailMappings": [
+  "account": "123456789012",
+  "region": "us-east-1",
+  "domains": [
     {
-      "receivePrefix": "contact",      // contact@mondomaine.fr
-      "targetEmails": ["moi@gmail.com"]
+      "domainName": "first-domain.com",
+      "fromPrefix": "noreply",
+      "verifyDomain": true,
+      "verifyTargetEmailAddresses": false,
+      "emailMappings": [
+        {
+          "receivePrefix": "contact",
+          "targetEmails": ["you@gmail.com"]
+        },
+        {
+          "receivePrefix": "info",
+          "targetEmails": ["you@gmail.com"]
+        }
+      ]
     },
     {
-      "receivePrefix": "info",         // info@mondomaine.fr
-      "targetEmails": ["moi@gmail.com"]
+      "domainName": "second-domain.net",
+      "fromPrefix": "forward",
+      "verifyDomain": true,
+      "verifyTargetEmailAddresses": false,
+      "emailMappings": [
+        {
+          "receivePrefix": "hello",
+          "targetEmails": ["another@gmail.com"]
+        },
+        {
+          "receivePrefix": "admin",
+          "targetEmails": ["admin@example.com"]
+        }
+      ]
     }
-  ],
-  "verifyDomain": true,                // Auto-vérification (Route53)
-  "verifyTargetEmailAddresses": false
+  ]
 }
 ```
 
-### 4. Déployer
+### 4. Deploy
 
 ```bash
-# Option 1: Déploiement direct (recommandé)
+# Option 1: Direct deployment (recommended)
 npx cdk deploy
 
-# Option 2: Compilation puis déploiement
+# Option 2: Build then deploy
 yarn build
 npx cdk deploy
 ```
 
-## ⚙️ Configuration détaillée
+## ⚙️ Detailed Configuration
 
-### Paramètres obligatoires
+### Required Parameters
 
-| Paramètre | Description | Exemple |
+| Parameter | Description | Example |
 |-----------|-------------|---------|
 | `account` | AWS Account ID | `"123456789012"` |
-| `region` | Région AWS | `"eu-west-1"` |
-| `domainName` | Votre domaine | `"mondomaine.fr"` |
-| `fromPrefix` | Préfixe expéditeur | `"noreply"` |
-| `emailMappings` | Mappings d'emails | Voir exemple ci-dessous |
+| `region` | AWS Region | `"us-east-1"` |
+| `domains` | Array of domain configurations | See below |
 
-### Mappings d'emails
+### Domain Configuration
+
+Each domain in the `domains` array requires:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `domainName` | Your domain name | `"example.com"` |
+| `fromPrefix` | Sender prefix | `"noreply"` |
+| `verifyDomain` | Auto domain verification (Route53) | `true` |
+| `verifyTargetEmailAddresses` | Verify destination emails | `false` |
+| `emailMappings` | Email forwarding mappings | See below |
+
+### Email Mappings
 
 ```json
 "emailMappings": [
@@ -107,135 +147,145 @@ npx cdk deploy
 ]
 ```
 
-### Options avancées
+This configuration will:
+- Forward `contact@example.com` → `admin@gmail.com` and `support@company.com`
+- Forward `newsletter@example.com` → `marketing@company.com`
 
-| Paramètre | Description | Défaut |
-|-----------|-------------|--------|
-| `verifyDomain` | Vérification auto domaine (Route53) | `true` |
-| `verifyTargetEmailAddresses` | Vérification emails destination | `false` |
-
-## 📋 Prérequis
+## 📋 Prerequisites
 
 ### AWS
 
-- ✅ Compte AWS configuré
-- ✅ CDK v2 installé : `npm install -g aws-cdk`
-- ✅ Permissions AWS : SES, S3, Lambda, IAM
-- ✅ Domaine possédé (Route53 recommandé)
+- ✅ Configured AWS account
+- ✅ CDK v2 installed: `npm install -g aws-cdk`
+- ✅ AWS permissions: SES, S3, Lambda, IAM
+- ✅ Owned domain (Route53 recommended)
 
 ### Local
 
 - ✅ Node.js >= 18
 - ✅ TypeScript
-- ✅ AWS CLI configuré
+- ✅ Configured AWS CLI
 
-## 🔧 Commandes utiles
+## 🔧 Useful Commands
 
 ```bash
 # Installation
-yarn install               # Installer dépendances
+yarn install               # Install dependencies
 
-# CDK (commandes principales)
-npx cdk deploy             # Déployer sur AWS
-npx cdk synth              # Générer CloudFormation
-npx cdk destroy            # Supprimer la stack
-npx cdk diff               # Voir les changements
+# CDK (main commands)
+npx cdk deploy             # Deploy to AWS
+npx cdk synth              # Generate CloudFormation
+npx cdk destroy            # Delete the stack
+npx cdk diff               # View changes
 
-# Développement (optionnel)
-yarn build                 # Compiler TypeScript
-yarn watch                 # Compilation automatique
-yarn test                  # Tests unitaires
+# Development (optional)
+yarn build                 # Compile TypeScript
+yarn watch                 # Auto compilation
+yarn test                  # Run unit tests
 ```
 
-## 🛠️ Après déploiement
+## 🛠️ Post-Deployment
 
-### 1. Configuration DNS
+### 1. DNS Configuration
 
-Si votre domaine n'est **pas** sur Route53, ajoutez manuellement :
+If your domain is **not** on Route53, manually add:
 
 ```
-# Enregistrement MX
-10 inbound-smtp.eu-west-1.amazonaws.com
+# MX Record
+10 inbound-smtp.us-east-1.amazonaws.com
 ```
 
-### 2. Vérification SES
+(Replace `us-east-1` with your region)
 
-- Vérifiez que votre domaine est validé dans la console SES
-- Sortez du sandbox SES si nécessaire
-- Testez l'envoi d'un email
+### 2. SES Verification
 
-### 3. Test
+- Verify that your domain is validated in the SES console
+- Exit SES sandbox if necessary
+- Test sending an email
 
-Envoyez un email à `contact@votre-domaine.fr` et vérifiez la réception.
+### 3. Testing
 
-## 🔍 Dépannage
+Send an email to `contact@your-domain.com` and verify reception.
 
-### Email pas reçu
+## 🔍 Troubleshooting
 
-1. ✅ Vérifiez les logs CloudWatch de la fonction Lambda
-2. ✅ Vérifiez que le domaine est vérifié dans SES
-3. ✅ Vérifiez l'enregistrement MX DNS
-4. ✅ Vérifiez que vous n'êtes pas dans le sandbox SES
+### Email Not Received
 
-### Erreurs de déploiement
+1. ✅ Check Lambda CloudWatch logs
+2. ✅ Verify domain is verified in SES
+3. ✅ Check MX DNS record
+4. ✅ Verify you're not in SES sandbox
+5. ✅ For multi-domain: Check correct domain configuration
 
-1. ✅ Vérifiez que `config/config.json` existe
-2. ✅ Vérifiez les permissions AWS
-3. ✅ Vérifiez que la région SES est supportée
+### Deployment Errors
 
-## 🔧 Architecture simplifiée
+1. ✅ Verify `config/config.json` exists
+2. ✅ Check AWS permissions
+3. ✅ Verify SES region is supported
+4. ✅ Validate JSON configuration format
 
-Cette version a été **simplifiée** pour une meilleure maintenabilité :
+### Multi-Domain Issues
 
-### ✨ Améliorations apportées
+1. ✅ Each domain must have unique MX records
+2. ✅ All domains must be verified in SES
+3. ✅ Check CloudFormation outputs for configured domains
 
-- **📁 Configuration unique** : Chargée une seule fois dans `bin/email-forwarder.ts`
-- **🧹 Code réduit** : -20 lignes, suppression des duplications
-- **⚡ Pas de compilation obligatoire** : CDK utilise `ts-node` pour compiler à la volée
-- **🎯 Scripts essentiels** : Seules les commandes nécessaires dans `package.json`
+## 🔧 Advanced Features
 
-### 🚀 Avantages
+### Node.js 22.x Runtime
 
-- **Plus rapide** : Déploiement direct avec `npx cdk deploy`
-- **Plus simple** : Moins de fichiers à maintenir
-- **Plus lisible** : Code plus concis et focalisé
+The stack automatically patches Lambda functions to use Node.js 22.x runtime, ensuring you have the latest features and security updates.
 
-## 💰 Coûts
+### S3 Cost Optimization
 
-Pour 1000 emails/mois (~2KB chacun) :
-- **SES** : ~0.10€
-- **S3** : <0.01€
-- **Lambda** : <0.01€
-- **Total** : ~0.11€/mois
+The solution includes automatic S3 lifecycle management:
+- **Intelligent Tiering**: Automatically moves objects between access tiers based on usage patterns
+- **Automatic Deletion**: Emails are deleted after 90 days
+- **Cleanup**: Incomplete multipart uploads are removed after 1 day
 
-*Coûts hors domaine (le plus cher)*
+### Configuration Validation
 
-## 🤝 Contribuer
+The stack includes robust validation:
+- Validates required fields for each domain
+- Ensures at least one email mapping per domain
+- Validates email mapping structure
 
-1. Fork le projet
-2. Créez une branche (`git checkout -b feature/amélioration`)
-3. Committez (`git commit -am 'Ajout fonctionnalité'`)
-4. Push (`git push origin feature/amélioration`)
-5. Ouvrez une Pull Request
+## 💰 Costs
 
-## 📝 Licence
+For 1000 emails/month (~2KB each):
+- **SES**: ~$0.10
+- **S3**: <$0.01 (with lifecycle optimization)
+- **Lambda**: <$0.01
+- **Total**: ~$0.11/month
 
-MIT License - voir le fichier [LICENSE](LICENSE)
+*Costs exclude domain registration (typically the highest cost)*
 
-## 🙏 Remerciements
+## 🤝 Contributing
 
-- [Tutoriel AWS officiel](https://aws.amazon.com/fr/blogs/messaging-and-targeting/forward-incoming-email-to-an-external-destination/)
-- [@seeebiii/ses-email-forwarding](https://github.com/seeebiii/ses-email-forwarding) - Le construct CDK utilisé
-- Communauté AWS CDK
+1. Fork the project
+2. Create a branch (`git checkout -b feature/improvement`)
+3. Commit (`git commit -am 'Add feature'`)
+4. Push (`git push origin feature/improvement`)
+5. Open a Pull Request
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file
+
+## 🙏 Acknowledgments
+
+- [AWS official tutorial](https://aws.amazon.com/blogs/messaging-and-targeting/forward-incoming-email-to-an-external-destination/)
+- [@seeebiii/ses-email-forwarding](https://github.com/seeebiii/ses-email-forwarding) - The CDK construct used
+- AWS CDK community
 
 ---
 
-**🚀 Prêt à déployer ?**
+**🚀 Ready to deploy?**
 ```bash
 cp config/config.example.json config/config.json
-# Éditez config.json avec vos paramètres
+# Edit config.json with your parameters
 yarn install
 npx cdk deploy
 ```
 
-> 💡 **Astuce** : Plus besoin de `yarn build` ! CDK compile automatiquement avec `ts-node`.
+> 💡 **Tip**: No need for `yarn build`! CDK compiles automatically with `ts-node`.
